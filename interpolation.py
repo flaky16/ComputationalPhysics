@@ -24,9 +24,49 @@ def linearInterpolation(x , data_X , data_Y):
                 break                    # For loop ends
     return f_x                           # return f(x) as an array in inceasing x
 
-def cubicInterpolation(x , X ,Y):
-    return 0
+def cubicInterpolation(x , data_x ,data_f):
+    # Setting Matrices and vectors
+    N = data_x.size - 1                               # Number of data points, - 1 for indexing
+    matrix_X = np.zeros([N-1,N-1])                    # Initializing the matrix and vectors in the equation to be solved
+    vector_f = np.zeros([N-1])
 
+    matrix_X[0][0]     = (data_x[2] - data_x[0]) / 3                                        # Setting first row before loop
+    matrix_X[0][1]     = (data_x[2] - data_x[1]) / 6            
+    matrix_X[N-2][N-3] = (data_x[N-1] - data_x[N-2]) / 6                                    # Setting last row before loop
+    matrix_X[N-2][N-2] = (data_x[N]   - data_x[N-2]) / 3 
+    
+    vector_f[0] = ( (data_f[2] - data_f[1]) / ( data_x[2] - data_x[1] )                     # Setting first element
+                  - (data_f[1] - data_f[0]) / ( data_x[1] - data_x[0] ) )
+    
+    vector_f[N-2] = ( (data_f[N] - data_f[N-1]) / ( data_x[N]  -  data_x[N-1] )             # Setting last element
+                  - (data_f[N-1] - data_f[N-2]) / ( data_x[N-1] - data_x[N-2] ) )
+    
+    for row in np.arange(1,N-2):                                                            # Filling matrix and vector row by row
+        matrix_X[row][row-1] = (data_x[row+1] - data_x[row]) / 6                            # First matrix element in row
+        matrix_X[row][row] = (data_x[row+2] - data_x[row]) / 3                              # Second matrix element in row
+        matrix_X[row][row+1] = (data_x[row+2] - data_x[row+1]) / 6                          # Last matrix element in row
+        vector_f[row] = ( (data_f[row+2] - data_f[row+1]) / ( data_x[row+2] - data_x[row+1] )
+                          - (data_f[row+1] - data_f[row]) / ( data_x[row+1] - data_x[row] ) )     # Right hand side of eqn
+    
+    # Here the matrix X and vector f in X f'' = f eqn are ready to find f'' 
+    vector_ddf = np.zeros(N+1)
+    ddf_withoutBC = lu.solveEquation(matrix_X , vector_f)                       # Imported function solves eqn for f'' excluding natural spline BC's
+    for i in range(N-1):
+        vector_ddf[i+1] = ddf_withoutBC[i]                                      # Adding natural spline BC to f'' vector
+
+    # Calculating f(x) from given equation for an input array of x's
+    cubic = np.zeros(x.size)
+    for k in range(x.size):                                                     # Going through each x position in input x array to find f(x)
+        for i in np.arange(1, N+1):                                             # Going through data points
+            if x[k] < data_x[i]:
+                A = ( data_x[i] - x[k] ) / ( data_x[i] - data_x[i-1] )
+                B = 1 - A
+                C = (A**3 - A ) * (data_x[i] - data_x[i-1])**2 / 6
+                D = (B**3 - B ) * (data_x[i] - data_x[i-1])**2 / 6
+
+                cubic[k] = A * data_f[i-1] + B * data_f[i] + C * vector_ddf[i-1] + D * vector_ddf[i]
+                break
+    return cubic
 
 if __name__ == "__main__":
     
@@ -37,5 +77,6 @@ if __name__ == "__main__":
            0.298197, 0.105399, 3.936690e-4 , 5.355348e-7])
 
     pl.scatter(table_x , table_y, s=50)
-    interp_x = np.linspace(-3 , 3.9, 300)
-    pl.plot(interp_x, linearInterpolation(interp_x , table_x , table_y))
+    interp_x = np.linspace(-2 , 3.8, 300)
+    pl.plot(interp_x, cubicInterpolation(interp_x , table_x , table_y))
+    #pl.axis([-0.5,1, 0.6 ,1.2])
