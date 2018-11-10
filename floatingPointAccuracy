@@ -1,0 +1,24 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Oct 20 17:55:30 2018
+
+@author: fsk16
+
+Floating-point Number Accuracy
+
+"""
+import numpy as np
+x1 = 1+1j
+x2 = 1+1j
+
+print(type(x1))
+for n in range(30):
+    x2 = x1
+    x1 = x1 + 10**(-n)  + 10**(-n)*1j
+
+    if x2 == x1:
+        break
+   # print (x1 , n)
+print(x1, x2 , n, type(x1))
+    
+print ( np.power(2.,(-111)))
