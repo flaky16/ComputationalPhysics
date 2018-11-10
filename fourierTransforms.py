@@ -9,51 +9,44 @@ Computational Physics Fourier Transforms
 
 import numpy as np
 import pylab as pl
-from numpy.fft import fft , fftfreq
+from numpy.fft import fft , ifft , fftshift
 
-N=2**12
-x = np.linspace(-6,6,N)
-fftdom = np.linspace(0,6,N)
-#t = np.linspace(-6,6,32)
-w = 4
-y = np.exp(-(x)**2/(w*w))/np.sqrt(2*np.pi*(w*w))
+N = 2**8                                        # Number of samples
 
-f = np.sin(w*x)
-fftresult = fft(f) / np.sqrt(N)
-print(f, fftresult)
-pl.plot()
-pl.scatter(x , f)
-pl.scatter(x , fftresult)
-#pl.axis([-6,6,-1,110])
-#t = np.arange(256)
-#sp = np.fft.fft(np.exp(-(x)**2/(w*w))/np.sqrt(2*np.pi*(w*w)))
-#freq = fftfreq(x.shape[-1])
-#pl.plot(freq, sp.real, freq, sp.imag)
-#pl.scatter(x, sp.real)
+def h(T):                                       # The given h step function
+    h = np.zeros(T.size)
+    for t in range(T.size):
+        if T[t] > 3 and T[t] < 5:
+             h[t] = 4
+        else:
+             h[t] = 0           
+    return h
+
+def g(t):                                       # The given g Gaussian function
+    return 1/np.sqrt(np.pi*2) * np.exp(-t**2 / 2)
 
 
+t = np.linspace(-8 , 8 , N)             # Time domain
+dt = (t[N-1] - t[0]) / N                # Time steps
+
+h = h(t)
+g = g(t)
+hf = fft(h) * dt                        # Fourier transform of h in given domain t
+gf = fft(g) * dt                        # Fourier transform of g in given domain t
+
+hxgf = hf * gf                          # Fourier transform of the convolution using the convolution theorem
+hxg = ifft(hxgf) / dt                   # Inverse Fourier transform to get the convolution funcion
+
+hxg = fftshift(hxg)                     # Shift the convoluted function to appropriate position
 
 
+#tf = np.linspace(0 , 1/dt, N/2)         # Frequency domain
 
-"""
-def DFT(f , x):
-    N = f.size
-    F_x = 0
-    for n in range(N-1):
-        F_x += f[n]*np.exp(1j*2*np.pi*x*n/N)
-    return F_x
 
-def inv_DFT(F , x):
-    N = F.size
-    f_x = 0
-    for n in range(N-1):
-        f_x += F[n]*np.exp(-1j*2*np.pi*x*n/N)/N
-    return f_x
+pl.plot(t , hxg)
+pl.plot(t , h)
+pl.plot(t , g)
 
-#Y = DFT(y ,x)
-#pl.scatter(x , DFT(y,x))
-
-#print(Y)
-#pl.scatter(x , inv_DFT(Y,x))
-#pl.axis([-4,4,-1,1])
-    """
+pl.xlabel("t")
+pl.legend(["(h*g)(t)" , "h(t)" , "g(t)"])
+#pl.savefig("convolution.png")
